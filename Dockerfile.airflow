@@ -1,0 +1,9 @@
+FROM apache/airflow:3.1.8-python3.11
+
+COPY --chown=airflow:0 pyproject.toml README.md /opt/project/
+COPY --chown=airflow:0 src/churn_ml /opt/project/src/churn_ml
+COPY --chown=airflow:0 configs /opt/project/configs
+
+USER airflow
+
+RUN pip install --no-cache-dir /opt/project

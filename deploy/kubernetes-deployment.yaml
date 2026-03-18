@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: churn-prediction-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: churn-prediction-api
+  template:
+    metadata:
+      labels:
+        app: churn-prediction-api
+    spec:
+      containers:
+        - name: api
+          image: churn-ml-pipeline:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MODEL_BUNDLE_PATH
+              value: /models/current/model_bundle.joblib
+            - name: CORS_ALLOW_ORIGINS
+              value: http://localhost:9634
+          ports:
+            - containerPort: 9471
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9471
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9471
+            initialDelaySeconds: 10
+            periodSeconds: 20

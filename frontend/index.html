@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Churn Inference Studio</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Inference Studio</p>
+          <h1>Churn Prediction Control Surface</h1>
+          <p class="hero-text">
+            Inspect the packaged model, submit feature inputs, and visualize churn risk without changing the
+            existing training or orchestration layers.
+          </p>
+        </div>
+        <div class="hero-panel" id="metadata-panel">
+          <div class="panel-chip">Model Metadata</div>
+          <div class="panel-grid" id="metadata-grid"></div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel input-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Input</p>
+              <h2>Customer Features</h2>
+            </div>
+            <div class="panel-actions">
+              <button id="example-button" class="ghost-button" type="button">Use Example Row</button>
+              <button id="reset-button" class="ghost-button" type="button">Reset</button>
+            </div>
+          </div>
+          <div id="status-banner" class="status-banner hidden" role="status"></div>
+          <form id="prediction-form" class="feature-form">
+            <div id="form-sections" class="form-sections"></div>
+            <div class="submit-row">
+              <button id="submit-button" class="primary-button" type="submit">Predict Churn</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel results-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Output</p>
+              <h2>Inference Results</h2>
+            </div>
+          </div>
+
+          <div id="loading-state" class="loading-card hidden">
+            <div class="spinner"></div>
+            <p>Scoring customer risk against the latest packaged model.</p>
+          </div>
+
+          <div id="results-empty" class="empty-state">
+            <p>Submit a customer profile to visualize churn probability, decision threshold, and model context.</p>
+          </div>
+
+          <div id="results-view" class="results-view hidden">
+            <div class="score-grid">
+              <article class="score-card highlight">
+                <div class="gauge-wrap">
+                  <div id="probability-gauge" class="probability-gauge">
+                    <div class="gauge-inner">
+                      <span class="gauge-label">Probability</span>
+                      <strong id="probability-value">0%</strong>
+                    </div>
+                  </div>
+                </div>
+              </article>
+              <article class="score-card">
+                <p class="metric-label">Decision</p>
+                <strong id="decision-value" class="decision-badge neutral">Awaiting score</strong>
+                <p id="decision-copy" class="metric-copy">Threshold comparison appears here after prediction.</p>
+              </article>
+              <article class="score-card">
+                <p class="metric-label">Threshold</p>
+                <strong id="threshold-value">0.00</strong>
+                <div class="threshold-bar">
+                  <div id="threshold-marker" class="threshold-marker"></div>
+                </div>
+              </article>
+            </div>
+
+            <div class="metric-card-grid" id="metric-card-grid"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

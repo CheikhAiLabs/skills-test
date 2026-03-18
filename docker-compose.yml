@@ -1,0 +1,105 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: churn-ml-backend
+    environment:
+      PIPELINE_CONFIG_PATH: /app/configs/pipeline.yaml
+      CORS_ALLOW_ORIGINS: http://localhost:9634,http://127.0.0.1:9634
+      MLFLOW_TRACKING_URI: http://mlflow:9861
+    command:
+      - /bin/sh
+      - -c
+      - |
+        if [ ! -f /app/data/raw/churn_customers.csv ]; then
+          python -m churn_ml.cli bootstrap-data --rows 5000;
+        fi
+        if ! ls /app/artifacts/*/model_bundle.joblib >/dev/null 2>&1; then
+          python -m churn_ml.cli run;
+        fi
+        uvicorn churn_ml.api:app --host 0.0.0.0 --port 9471
+    ports:
+      - "9471:9471"
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./configs:/app/configs:ro
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./tracking:/app/tracking
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9471/healthz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: churn-ml-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "9634:9634"
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.10.1
+    container_name: churn-ml-mlflow
+    command:
+      - mlflow
+      - server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "9861"
+      - --allowed-hosts
+      - mlflow,mlflow:9861,localhost,localhost:9861,127.0.0.1,127.0.0.1:9861,host.docker.internal,host.docker.internal:9861
+      - --backend-store-uri
+      - sqlite:////mlflow/mlflow.db
+      - --artifacts-destination
+      - /mlflow/artifacts
+    ports:
+      - "9861:9861"
+    volumes:
+      - ./mlflow:/mlflow
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9861/')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: churn-ml-airflow
+    command:
+      - airflow
+      - standalone
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__API__PORT: "8080"
+      AIRFLOW_HOME: /opt/airflow
+      MLFLOW_TRACKING_URI: http://mlflow:9861
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: admin
+    ports:
+      - "9726:8080"
+    volumes:
+      - ./orchestration/airflow:/opt/airflow/dags
+      - ./artifacts:/opt/project/artifacts
+      - ./configs:/opt/project/configs
+      - ./data:/opt/project/data
+      - ./reports:/opt/project/reports
+      - ./tracking:/opt/project/tracking
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/v2/monitor/health')"]
+      interval: 20s
+      timeout: 10s
+      retries: 12
