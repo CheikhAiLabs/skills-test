@@ -1,15 +1,32 @@
-# Churn Prediction ML Pipeline
+# 🚀 Churn Prediction MLOps Platform
 
-Production-ready churn prediction stack with:
+An end-to-end churn prediction project with a modern inference UI, a production-style FastAPI service, experiment tracking in MLflow, and workflow orchestration in Airflow.
 
-- data generation, validation, splitting, training, gating, packaging
-- FastAPI inference API
-- frontend inference UI
-- MLflow experiment tracking and model registry
-- Airflow orchestration
-- additive Kubeflow pipeline definition
+## ✨ Highlights
 
-## Stack Access
+- 🧠 churn prediction training pipeline with validation, gating, packaging, and promotion
+- 🌐 responsive frontend UI for inference visualization
+- ⚡ FastAPI backend with `/healthz`, `/metadata`, and `/predict`
+- 📈 MLflow tracking with nested runs, candidate comparison, artifacts, and model registry
+- ⏱️ Airflow DAG for retraining, reporting, and scheduled orchestration
+- 🐳 Docker Compose stack for local end-to-end execution
+
+## 🏗️ Architecture
+
+```text
+Frontend UI  ->  FastAPI Inference API  ->  Latest model bundle
+                      |
+                      v
+              Training / Retraining CLI
+                      |
+          +-----------+-----------+
+          |                       |
+          v                       v
+      MLflow UI             Airflow DAG
+ tracking, registry      orchestration, logs
+```
+
+## 🌍 Access URLs
 
 - Frontend UI: `http://localhost:9634`
 - Backend API: `http://localhost:9471`
@@ -18,29 +35,28 @@ Production-ready churn prediction stack with:
 - MLflow UI: `http://localhost:9861`
 - Airflow UI: `http://localhost:9726`
 
-Airflow runs in standalone mode and creates an `admin` user at startup. Retrieve the current password with:
+Airflow starts in standalone mode with an `admin` user. To retrieve the current password:
 
 ```bash
 docker compose logs airflow | rg "Password for user 'admin'"
 ```
 
-## Project Structure
+## 🧩 Project Layout
 
 ```text
 configs/                  Pipeline configuration
 data/raw/                 Input datasets
-artifacts/                Model bundles and packaged outputs
-reports/                  Latest markdown/json reports
-tracking/                 Local run tracking metadata
-src/churn_ml/             Training, evaluation, tracking, serving
-frontend/                 Inference visualization UI
-orchestration/airflow/    Airflow DAG
-orchestration/kubeflow/   Kubeflow pipeline definition
+artifacts/                Packaged model outputs
+reports/                  Generated evaluation reports
+tracking/                 Local run metadata
+src/churn_ml/             Core training, inference, and tracking code
+frontend/                 UI for prediction and visualization
+orchestration/airflow/    Airflow DAG for retraining and reporting
 deploy/                   Deployment manifests
 tests/                    API and pipeline tests
 ```
 
-## Local Development
+## ⚙️ Local Setup
 
 Create the environment and install dependencies:
 
@@ -50,7 +66,7 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-Generate data, train, and inspect metrics:
+Generate a dataset and run the training pipeline:
 
 ```bash
 python -m churn_ml.cli bootstrap-data --rows 5000
@@ -58,55 +74,56 @@ python -m churn_ml.cli run
 python -m churn_ml.cli report
 ```
 
-Serve the API locally:
+Run the API locally:
 
 ```bash
 MODEL_BUNDLE_PATH=$(ls -dt artifacts/* | head -n 1)/model_bundle.joblib \
 uvicorn churn_ml.api:app --host 0.0.0.0 --port 9471
 ```
 
-Launch the frontend locally:
+Run the UI locally:
 
 ```bash
 python3 -m http.server 9634 --directory frontend
 ```
 
-## Docker Compose
+## 🐳 Docker Compose
 
-Start the full stack:
+Start the full platform:
 
 ```bash
 docker compose up --build
 ```
 
-Services:
+Included services:
 
-- `backend`: FastAPI inference API on `9471`
-- `frontend`: static UI on `9634`
-- `mlflow`: MLflow `3.10.1` on `9861`
-- `airflow`: Airflow `3.1.8` on `9726`
+- `frontend` on `9634`
+- `backend` on `9471`
+- `mlflow` on `9861`
+- `airflow` on `9726`
 
-The backend container preserves the training architecture. On startup it:
+The backend container preserves the training flow and automatically:
 
-1. bootstraps synthetic data if `data/raw/churn_customers.csv` is missing
-2. trains and packages a model if no bundle exists in `artifacts/`
-3. serves inference with the latest bundle
+1. creates synthetic data if needed
+2. trains a model if no bundle is available
+3. serves inference with the latest packaged bundle
 
-## Training and Tracking
+## 📈 Training, Retraining, and Tracking
 
-Main CLI commands:
+Main commands:
 
-- `python -m churn_ml.cli bootstrap-data`
-- `python -m churn_ml.cli run`
-- `python -m churn_ml.cli retrain --rounds 3`
-- `python -m churn_ml.cli report`
+```bash
+python -m churn_ml.cli bootstrap-data
+python -m churn_ml.cli run
+python -m churn_ml.cli retrain --rounds 3
+python -m churn_ml.cli report
+```
 
-MLflow captures:
+MLflow logs:
 
-- parent campaign runs
-- nested training runs
+- training runs and retraining campaigns
 - nested candidate runs
-- parameters, metrics, tags, artifacts, model signatures, datasets
+- metrics, params, tags, datasets, signatures, and model artifacts
 - registered versions of `churn_prediction_model`
 
 Airflow DAG:
@@ -117,32 +134,43 @@ Airflow DAG:
   - `retrain_candidates`
   - `report_latest_metrics`
 
-Trigger manually:
+Manual trigger:
 
 ```bash
 docker compose exec airflow airflow dags trigger churn_training_pipeline
 ```
 
-## Validation Gates
+## ✅ Validation Gates
 
-Promotion is blocked if the selected model fails any configured gate:
+The selected model must pass:
 
-- schema or entity-level validation
-- missing-value thresholds
+- schema and entity-level validation
+- missing value thresholds
 - minimum ROC AUC
 - minimum average precision
 - minimum F1
 - minimum recall
-- baseline comparison
+- baseline outperformance checks
 
-## Repository Hygiene
+If a round fails a gate, the run is still visible in MLflow and the failure remains traceable.
 
-Generated runtime outputs are intentionally ignored:
+## 🧪 Quality Checks
 
-- virtualenv and caches
+Run tests locally:
+
+```bash
+source .venv/bin/activate
+python -m pytest -q
+```
+
+## 🧼 Repository Hygiene
+
+Runtime outputs are intentionally excluded from version control:
+
+- virtual environments and Python caches
+- generated datasets
 - MLflow local storage
 - Airflow logs
-- generated datasets
 - artifacts, reports, and tracking outputs
 
-Only the code, configs, manifests, UI, orchestration definitions, and tests are meant to be versioned.
+Only source code, configuration, UI assets, manifests, orchestration code, and tests are committed.
